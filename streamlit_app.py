@@ -59,18 +59,31 @@ st.markdown(f"""
     
     /* Custom Button Styling */
     .stButton > button {{
-        background: linear-gradient(45deg, #FF4B4B, #FF914D);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 0.6rem 1.2rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        width: 100%;
+        background: linear-gradient(135deg, #FF6B35 0%, #FF914D 100%) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 0.75rem 1.5rem !important;
+        font-weight: 700 !important;
+        font-size: 1.1rem !important;
+        transition: all 0.3s ease !important;
+        width: 100% !important;
+        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3) !important;
     }}
     .stButton > button:hover {{
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(255, 75, 75, 0.3);
+        transform: translateY(-3px) !important;
+        box-shadow: 0 8px 25px rgba(255, 107, 53, 0.5) !important;
+        background: linear-gradient(135deg, #FF5722 0%, #FF8C42 100%) !important;
+    }}
+    .stButton > button > * {{
+        color: #FFFFFF !important;
+    }}
+    .stButton > button p {{
+        color: #FFFFFF !important;
+        margin: 0 !important;
+    }}
+    .stButton > button span {{
+        color: #FFFFFF !important;
     }}
     
     /* Input Fields */
@@ -106,14 +119,22 @@ def generate_director_prompt(client, ref_img, user_scene_context):
     Uses Gemini 2.5 Flash to analyze the image and user context to write a technical prompt.
     """
     base_instruction = """
-    You are an expert film director and cinematographer. 
-    Analyze the character in this image.
-    I need a precise prompt for an AI Image Generator to create a 'Cinematic Storyboard' or specific shot.
+    You are an expert film director. Look at the character in this image.
+    I need a prompt for an AI Image Generator to create a '3x3 Cinematic Storyboard Sheet' (9 panels total).
+
+    The prompt must:
+    1. Describe a consistent scene (e.g., an intense action chase in a dusty market).
+    2. Specify the layout: "A 3x3 grid contact sheet".
+    3. Describe 9 distinct camera angles (Wide, Over-the-shoulder, Extreme Close-up of eyes, Low angle, etc.).
+    4. Mention specific details from the reference image (e.g., "man with beard", "white shirt") to reinforce consistency.
+    5. Style keywords: "Cinematic lighting, 4k, teal and orange, motion blur, highly detailed".
+
+    Output ONLY the final prompt text. Do not add conversational filler.
     """
     
     context_instruction = f"""
     The user wants this specific scene/context: "{user_scene_context}"
-    """ if user_scene_context else "Create an intense, dramatic scene suitable for an action movie."
+    """ if user_scene_context else "A dynamic, high-energy cinematic moment with professional production value"
 
     final_instruction = f"""
     {base_instruction}
@@ -157,12 +178,42 @@ def generate_image(client, prompt_text, ref_img, aspect_ratio):
             )
         )
         
+        from PIL import Image as PILImage
+        
+        # Try different approaches to extract image bytes from response
         for part in response.parts:
-            if part.as_image():
-                return part.as_image()
+            try:
+                # Method 1: Check if part has inline_data with image bytes
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    image_bytes = part.inline_data.data
+                    return PILImage.open(io.BytesIO(image_bytes))
+            except:
+                pass
+            
+            try:
+                # Method 2: Try as_image() and extract from that
+                if part.as_image():
+                    image_obj = part.as_image()
+                    
+                    # Try different attributes
+                    if hasattr(image_obj, 'data'):
+                        return PILImage.open(io.BytesIO(image_obj.data))
+                    elif hasattr(image_obj, '_image_bytes'):
+                        return PILImage.open(io.BytesIO(image_obj._image_bytes))
+                    elif hasattr(image_obj, 'mime_type'):
+                        # It's an image object, try to access its data
+                        if hasattr(image_obj, '__dict__'):
+                            for key, value in image_obj.__dict__.items():
+                                if isinstance(value, bytes) and len(value) > 100:
+                                    return PILImage.open(io.BytesIO(value))
+            except:
+                pass
+        
+        st.error("❌ Could not extract image data from response. The API response format may have changed.")
         return None
+        
     except Exception as e:
-        st.error(f"Cinematographer Error: {e}")
+        st.error(f"Cinematographer Error: {str(e)}")
         return None
 
 # --- 3. UI LAYOUT ---
@@ -184,6 +235,7 @@ with st.sidebar:
 # Main Header
 st.title("🎬 LynchVision")
 st.markdown("#### Turn character references into cinematic shots instantly.")
+st.markdown("Transform your images into stunning cinematic storyboards. Upload a reference image and watch as our system generates a beautiful 3x3 grid of keyframes that bring your vision to life.")
 st.markdown("---")
 
 # Layout: Two Columns
@@ -197,7 +249,7 @@ with col1:
     if uploaded_file:
         # Display uploaded image
         ref_image = Image.open(uploaded_file)
-        st.image(ref_image, caption="Reference Character", use_container_width=True)
+        st.image(ref_image, caption="Reference Character", width=300)
     
     st.markdown("### Scene Details")
     scene_prompt = st.text_area(
@@ -205,6 +257,22 @@ with col1:
         placeholder="e.g., Standing on a rainy rooftop at night, neon lights in background, holding a futuristic device...",
         height=100
     )
+    
+    # Dropdown for default scene info
+    with st.expander("ℹ️ What's the Default Scene?"):
+        st.markdown("""
+        **If you leave Scene Context empty, the AI will generate:**
+        
+        - 🎬 **Scene**: A cinematic moment featuring intense action, drama, or storytelling
+        - 💡 **Lighting**: Dramatic studio lighting with volumetric effects and rim lighting
+        - 🎨 **Color**: Cinematic palette with teal/orange, rich contrast and saturation
+        - 📷 **Camera**: Professional framing with shallow depth of field and bokeh
+        - 🌆 **Atmosphere**: Immersive, visually compelling environment
+        - ⚡ **Motion**: Dynamic energy with suggestion of movement or tension
+        - ✨ **Quality**: Award-winning cinematography, premium visual aesthetic
+        
+        **Pro Tip:** Add your own context for more control (e.g., location, mood, lighting preference, action).
+        """)
     
     aspect_ratio = st.selectbox(
         "Aspect Ratio",
@@ -255,18 +323,22 @@ with col2:
                         else:
                             st.image(final_image, caption="Generated Shot", use_container_width=True)
                         
-                        # Download Button
-                        # Convert PIL to Bytes
-                        buf = io.BytesIO()
-                        final_image.save(buf, format="PNG")
-                        byte_im = buf.getvalue()
-                        
-                        st.download_button(
-                            label="⬇️ Download Image",
-                            data=byte_im,
-                            file_name="cinegen_output.png",
-                            mime="image/png"
-                        )
+                        # Download Button - only for PIL Images
+                        try:
+                            from PIL import Image as PILImage
+                            if isinstance(final_image, PILImage.Image):
+                                buf = io.BytesIO()
+                                final_image.save(buf, format="PNG")
+                                byte_im = buf.getvalue()
+                                
+                                st.download_button(
+                                    label="⬇️ Download Image",
+                                    data=byte_im,
+                                    file_name="cinegen_output.png",
+                                    mime="image/png"
+                                )
+                        except Exception as e:
+                            st.warning(f"Could not create download button: {e}")
                     else:
                         status.update(label="❌ Rendering Failed", state="error")
                 else:
