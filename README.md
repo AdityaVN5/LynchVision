@@ -46,6 +46,13 @@ Lynch is known for his ability to transform the mundane into the surreal, the un
     * The **Cinematographer** (Gemini 3) takes that prompt and renders the final shot.
 
 ---
+## 🎞️ Example Generation
+
+| **Reference Actor (Input)** | **Scene Context** | **Cinematic Storyboard (Output)** |
+|:-------------------------:|:-----------:|:--------------------------------:|
+| <img src="examples/input.jpg" width="200" /> | ➡️ Driver having an intense conversation, getting ready for the race | <img src="examples/output.png" width="500" /> |
+| *Single reference image* | *Scene Prompt* | *Consistent 3x3 Contact Sheet* |
+---
 
 ## 🛠️ Installation & Local Development
 
