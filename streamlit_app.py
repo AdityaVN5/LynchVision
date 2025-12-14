@@ -234,7 +234,7 @@ with st.sidebar:
 
 # Main Header
 st.title("🎬 LynchVision")
-st.markdown("#### Turn character references into cinematic shots instantly.")
+st.markdown("#### Turn character references into cinematic shots instantly.(One Shot Reference)")
 st.markdown("Transform your images into stunning cinematic storyboards. Upload a reference image and watch as our system generates a beautiful 3x3 grid of keyframes that bring your vision to life.")
 st.markdown("---")
 
@@ -244,7 +244,7 @@ col1, col2 = st.columns([1, 1.5], gap="large")
 with col1:
     st.subheader("1. Input")
     
-    uploaded_file = st.file_uploader("Upload Reference Image", type=['png', 'jpg', 'jpeg'])
+    uploaded_file = st.file_uploader("Upload Reference Image(Single)", type=['png', 'jpg', 'jpeg'])
     
     if uploaded_file:
         # Display uploaded image
