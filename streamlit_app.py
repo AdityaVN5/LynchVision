@@ -236,6 +236,7 @@ with st.sidebar:
 st.title("🎬 LynchVision")
 st.markdown("#### Turn character references into cinematic shots instantly.(One Shot Reference)")
 st.markdown("Transform your images into stunning cinematic storyboards. Upload a reference image and watch as our system generates a beautiful 3x3 grid of keyframes that bring your vision to life.")
+st.markdown("Use your Google API Key with Gemini 3 Pro enabled to get started!")
 st.markdown("---")
 
 # Layout: Two Columns
